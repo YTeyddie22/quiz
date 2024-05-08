@@ -5,12 +5,16 @@ import Loader from "./components/Loader";
 import Error from "./components/Error";
 import Start from "./components/Start";
 import Questions from "./components/Questions";
+import NextButton from "./components/NextButton";
+import Progress from "./components/Progress";
 
 // Status can be "loading",,"recieved", "error", "active", "done"
 const initialState = {
 	questions: [],
 	status: "loading",
 	index: 0,
+	answer: null,
+	points: 0,
 };
 
 function reducer(state, action) {
@@ -32,18 +36,38 @@ function reducer(state, action) {
 				...state,
 				status: "active",
 			};
+		case "newAnswer":
+			const question = state.questions.at(state.index);
+
+			return {
+				...state,
+				answer: action.payload,
+				points:
+					action.payload === question.correctOption
+						? state.points + question.points
+						: state.points,
+			};
+
+		case "newQuestion":
+			return {
+				...state,
+				index: state.index + 1,
+				answer: null,
+			};
+
 		default:
 			throw new Error("Action unknown");
 	}
 }
 
 function App() {
-	const [{ questions, status, index }, dispatch] = useReducer(
+	const [{ questions, status, index, answer, points }, dispatch] = useReducer(
 		reducer,
 		initialState
 	);
 
 	const questionsLength = questions.length;
+	const maxPoints = questions.reduce((acc, cur) => acc + cur.points, 0);
 
 	useEffect(function () {
 		async function dataFetcher() {
@@ -72,7 +96,21 @@ function App() {
 					/>
 				)}
 				{status === "active" && (
-					<Questions question={questions[index]} />
+					<>
+						<Progress
+							questionsLength={questionsLength}
+							index={index}
+							points={points}
+							maxPoints={maxPoints}
+							answer={answer}
+						/>
+						<Questions
+							question={questions[index]}
+							answer={answer}
+							dispatch={dispatch}
+						/>
+						<NextButton dispatch={dispatch} answer={answer} />
+					</>
 				)}
 			</Main>
 		</div>
